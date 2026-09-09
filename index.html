@@ -297,58 +297,52 @@
 
             const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
 
-            // Find the Monday of the first week containing this month
+            // Find the first day to display (go back to previous Monday)
             const firstDayOfMonth = new Date(currentYear, currentMonth - 1, 1);
-            let firstMonday = new Date(currentYear, currentMonth - 1, 1);
-            const dayOfWeek = firstDayOfMonth.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-            if (dayOfWeek === 0) dayOfWeek = 7; // Convert to 1=Mon...7=Sun
-            firstMonday.setDate(firstMonday.getDate() - (dayOfWeek - 1));
+            let displayStart = new Date(currentYear, currentMonth - 1, 1);
+            const dayOfWeek = firstDayOfMonth.getDay(); // 0=Sun, 1=Mon, ...
+            if (dayOfWeek === 0) dayOfWeekVal = 7; else dayOfWeekVal = dayOfWeek;
+            displayStart.setDate(displayStart.getDate() - (dayOfWeekVal - 1));
 
-            // Get the actual September start day for display
-            const sepStart = Math.max(firstMonday.getDate(), 1);
-            const sepStartMonth = firstMonday.getMonth() + 1 === currentMonth ? currentMonth : currentMonth - 1;
-            const sepStartYear = firstMonday.getMonth() + 1 === currentMonth ? currentYear : currentYear;
-
-            // Calculate end date (cover all weeks)
+            // Find last day to display (cover all weeks)
             const lastDayOfMonth = new Date(currentYear, currentMonth, 0);
-            let lastMonday = new Date(lastDayOfMonth);
-            const lastDayOfWeek = lastDayOfMonth.getDay();
-            if (lastDayOfWeek === 0) lastDayOfWeek = 7;
-            lastMonday.setDate(lastMonday.getDate() - (lastDayOfWeek - 1));
-            // Add one more week to ensure we have a complete final row
-            lastMonday.setDate(lastMonday.getDate() + 7);
+            let displayEnd = new Date(lastDayOfMonth);
+            const lastDayOfWeek = displayEnd.getDay();
+            if (lastDayOfWeek === 0) lastDayOfWeekVal = 7; else lastDayOfWeekVal = lastDayOfWeek;
+            displayEnd.setDate(displayEnd.getDate() + (7 - lastDayOfWeekVal));
 
-            let currentDate = new Date(firstMonday);
-            while (currentDate <= lastMonday) {
-                // Row: 日期 + 一~五
+            // Render rows of 6 days each
+            let currentDate = new Date(displayStart);
+            while (currentDate <= displayEnd) {
+                // Each row: 日期 + 5 consecutive days
                 const rowDates = [];
                 for (let i = 0; i < 6; i++) {
                     rowDates.push(new Date(currentDate));
                     currentDate.setDate(currentDate.getDate() + 1);
                 }
 
-                // First cell: week start date
+                // First cell: week start date (the 日期 column)
                 const startDate = rowDates[0];
-                const startIsSep = startDate.getMonth() + 1 === currentMonth && startDate.getFullYear() === currentYear;
-                const startCell = createCell(
-                    startIsSep ? startDate.getDate() : null,
-                    startIsSep,
-                    startDate.getMonth() + 1 !== currentMonth || startDate.getDate() > daysInMonth
-                );
-                body.appendChild(startCell);
+                const startIsCurrentMonth = startDate.getMonth() + 1 === currentMonth && startDate.getFullYear() === currentYear;
+                const startIsWeekend = startDate.getDay() === 0 || startDate.getDay() === 6;
+                body.appendChild(createDateCell(startIsCurrentMonth ? startDate.getDate() : null, startIsWeekend, !startIsCurrentMonth));
 
-                // Next 5 cells: Mon-Fri
+                // Next 5 cells
                 for (let i = 1; i <= 5; i++) {
                     const d = rowDates[i];
-                    const isSep = d.getMonth() + 1 === currentMonth && d.getFullYear() === currentYear;
+                    const isCurrentMonth = d.getMonth() + 1 === currentMonth && d.getFullYear() === currentYear;
                     const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-                    body.appendChild(createCell(isSep ? d.getDate() : null, isWeekend, !isSep));
+                    body.appendChild(createDateCell(isCurrentMonth ? d.getDate() : null, isWeekend, !isCurrentMonth));
                 }
             }
         }
 
-        function createCell(day, isWeekend) {
+        function createCell(day, isWeekend, isEmpty = false) {
             const cell = document.createElement('div');
+            if (isEmpty) {
+                cell.className = 'cal-cell empty';
+                return cell;
+            }
             cell.className = 'cal-cell' + (isWeekend ? ' weekend' : '');
 
             const dateKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
