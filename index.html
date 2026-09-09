@@ -301,14 +301,14 @@
             const firstDayOfMonth = new Date(currentYear, currentMonth - 1, 1);
             let displayStart = new Date(currentYear, currentMonth - 1, 1);
             const dayOfWeek = firstDayOfMonth.getDay(); // 0=Sun, 1=Mon, ...
-            if (dayOfWeek === 0) dayOfWeekVal = 7; else dayOfWeekVal = dayOfWeek;
+            const dayOfWeekVal = dayOfWeek === 0 ? 7 : dayOfWeek;
             displayStart.setDate(displayStart.getDate() - (dayOfWeekVal - 1));
 
             // Find last day to display (cover all weeks)
             const lastDayOfMonth = new Date(currentYear, currentMonth, 0);
             let displayEnd = new Date(lastDayOfMonth);
             const lastDayOfWeek = displayEnd.getDay();
-            if (lastDayOfWeek === 0) lastDayOfWeekVal = 7; else lastDayOfWeekVal = lastDayOfWeek;
+            const lastDayOfWeekVal = lastDayOfWeek === 0 ? 7 : lastDayOfWeek;
             displayEnd.setDate(displayEnd.getDate() + (7 - lastDayOfWeekVal));
 
             // Render rows of 6 days each
