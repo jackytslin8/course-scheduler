@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>課程進度管理系統</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .month-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .month-btn {
+            padding: 10px 20px;
+            border: none;
+            background: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .month-btn:hover {
+            background: #e3f2fd;
+        }
+        .month-btn.active {
+            background: #2196F3;
+            color: white;
+        }
+        .calendar {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .calendar-header {
+            display: grid;
+            grid-template-columns: 60px repeat(5, 1fr);
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .calendar-header div {
+            text-align: center;
+            font-weight: bold;
+            padding: 10px;
+            background: #ff9800;
+            color: white;
+            border-radius: 4px;
+        }
+        .calendar-body {
+            display: grid;
+            grid-template-columns: 60px repeat(5, 1fr);
+            gap: 5px;
+        }
+        .date-cell {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            min-height: 120px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+        .date-cell:hover {
+            background: #fff3e0;
+            border-color: #ff9800;
+        }
+        .date-cell.empty {
+            background: #f5f5f5;
+            cursor: default;
+        }
+        .date-cell.weekend {
+            background: #fce4ec;
+        }
+        .date-number {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .date-lunar {
+            font-size: 12px;
+            color: #666;
+        }
+        .class-entry {
+            background: #e3f2fd;
+            border-radius: 4px;
+            padding: 4px 6px;
+            margin-top: 4px;
+            font-size: 13px;
+            word-break: break-all;
+        }
+        .class-entry .class-name {
+            font-weight: bold;
+            color: #1976D2;
+        }
+        .class-entry .class-content {
+            color: #555;
+            margin-top: 2px;
+        }
+        .delete-btn {
+            float: right;
+            color: #f44336;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+        }
+        .delete-btn:hover {
+            color: #d32f2f;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h2 {
+            color: #333;
+        }
+        .close-btn {
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            line-height: 1;
+        }
+        .close-btn:hover {
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .form-group textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        .quick-classes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .quick-class-btn {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            background: #f5f5f5;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .quick-class-btn:hover {
+            background: #e3f2fd;
+            border-color: #2196F3;
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: #ff9800;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .submit-btn:hover {
+            background: #f57c00;
+        }
+        .export-btn {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 20px;
+            margin-right: 10px;
+        }
+        .import-btn {
+            padding: 10px 20px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .stats {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .stats h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+        }
+        .stat-item {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .stat-item .class-code {
+            font-weight: bold;
+            color: #2196F3;
+        }
+        .stat-item .lesson-count {
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📚 課程進度管理系統</h1>
+        <p>點擊日期格子輸入課程進度</p>
+    </div>
+    
+    <div class="month-selector" id="monthSelector"></div>
+    
+    <div class="calendar">
+        <div class="calendar-header">
+            <div>日期</div>
+            <div>一</div>
+            <div>二</div>
+            <div>三</div>
+            <div>四</div>
+            <div>五</div>
+        </div>
+        <div class="calendar-body" id="calendarBody"></div>
+    </div>
+    
+    <div class="stats" id="statsPanel" style="display:none;">
+        <h3>📊 各班級進度統計</h3>
+        <div class="stats-grid" id="statsGrid"></div>
+    </div>
+    
+    <button class="export-btn" onclick="exportData()">📥 匯出備份</button>
+    <button class="import-btn" onclick="document.getElementById('importFile').click()">📤 匯入備份</button>
+    <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
+    
+    <!-- Modal -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">編輯課程進度</h2>
+                <span class="close-btn" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="form-group">
+                <label>班級代號</label>
+                <input type="text" id="classCode" placeholder="例：605、506、609" list="classList">
+                <datalist id="classList"></datalist>
+            </div>
+            <div class="form-group">
+                <label>課程內容（頁碼、作業等）</label>
+                <textarea id="classContent" placeholder="例：作業社練P2~3，P23~24"></textarea>
+            </div>
+            <div class="form-group">
+                <label>快速選取（常用班級）</label>
+                <div class="quick-classes" id="quickClasses"></div>
+            </div>
+            <button class="submit-btn" onclick="saveEntry()">💾 儲存</button>
+        </div>
+    </div>
+    
+    <script>
+        // 資料結構
+        let scheduleData = {};
+        let currentMonth = 9; // 9月
+        let currentYear = 2026; // 115年 = 2026
+        let selectedDate = null;
+        
+        // 常用班級列表
+        const quickClasses = ['506', '605', '606', '609', '610'];
+        
+        // 初始化
+        function init() {
+            loadData();
+            renderMonthSelector();
+            renderCalendar();
+            updateStats();
+        }
+        
+        // 載入資料
+        function loadData() {
+            const saved = localStorage.getItem('courseSchedule');
+            if (saved) {
+                scheduleData = JSON.parse(saved);
+            }
+        }
+        
+        // 儲存資料
+        function saveData() {
+            localStorage.setItem('courseSchedule', JSON.stringify(scheduleData));
+            updateStats();
+        }
+        
+        // 渲染月份選擇器
+        function renderMonthSelector() {
+            const months = ['9月', '10月', '11月', '12月', '1月'];
+            const container = document.getElementById('monthSelector');
+            container.innerHTML = '';
+            months.forEach((m, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'month-btn' + (i + 9 === currentMonth ? ' active' : '');
+                btn.textContent = `115${m}`;
+                btn.onclick = () => {
+                    currentMonth = i + 9;
+                    renderMonthSelector();
+                    renderCalendar();
+                };
+                container.appendChild(btn);
+            });
+        }
+        
+        // 渲染日曆
+        function renderCalendar() {
+            const body = document.getElementById('calendarBody');
+            body.innerHTML = '';
+            
+            // 計算這月第一天是星期幾（週一=0，週日=6）
+            const firstDay = new Date(currentYear, currentMonth - 1, 1);
+            let startDay = firstDay.getDay() - 1;
+            if (startDay < 0) startDay = 6;
+            
+            // 這月總天數
+            const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+            
+            // 填充空白天數
+            for (let i = 0; i < startDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'date-cell empty';
+                body.appendChild(emptyCell);
+            }
+            
+            // 填充日期
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const weekday = new Date(currentYear, currentMonth - 1, day).getDay();
+                const isWeekend = weekday === 0 || weekday === 6; // 但我們只显示工作日
+                
+                const cell = document.createElement('div');
+                cell.className = 'date-cell' + (isWeekend ? ' weekend' : '');
+                
+                // 獲取農曆
+                const lunar = getLunarDay(day, currentMonth, currentYear);
+                
+                // 獲取課程資料
+                const entries = scheduleData[dateKey] || [];
+                
+                let html = `<div class="date-number">
+                    <span>${day}</span>
+                    <span class="date-lunar">${lunar}</span>
+                </div>`;
+                
+                entries.forEach((entry, idx) => {
+                    html += `<div class="class-entry">
+                        <span class="delete-btn" onclick="deleteEntry(event, '${dateKey}', ${idx})">&times;</span>
+                        <div class="class-name">${entry.code} 班</div>
+                        <div class="class-content">${entry.content}</div>
+                    </div>`;
+                });
+                
+                cell.innerHTML = html;
+                cell.onclick = (e) => {
+                    if (!e.target.classList.contains('delete-btn')) {
+                        openModal(dateKey);
+                    }
+                };
+                body.appendChild(cell);
+            }
+        }
+        
+        // 獲取農曆日（簡化版）
+        function getLunarDay(day, month, year) {
+            const lunarDays = ['初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
+                              '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
+                              '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'];
+            // 簡化：直接返回數字對應的農曆（實際應計算）
+            return lunarDays[(day - 1) % 30];
+        }
+        
+        // 開啟編輯視窗
+        function openModal(dateKey) {
+            selectedDate = dateKey;
+            document.getElementById('editModal').classList.add('show');
+            document.getElementById('modalTitle').textContent = `${dateKey} 編輯課程進度`;
+            document.getElementById('classCode').value = '';
+            document.getElementById('classContent').value = '';
+            
+            // 更新快速選取列表
+            const quickContainer = document.getElementById('quickClasses');
+            quickContainer.innerHTML = '';
+            quickClasses.forEach(code => {
+                const btn = document.createElement('button');
+                btn.className = 'quick-class-btn';
+                btn.textContent = code;
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    document.getElementById('classCode').value = code;
+                };
+                quickContainer.appendChild(btn);
+            });
+            
+            // 更新備選列表
+            const datalist = document.getElementById('classList');
+            datalist.innerHTML = '';
+            quickClasses.forEach(code => {
+                const option = document.createElement('option');
+                option.value = code;
+                datalist.appendChild(option);
+            });
+        }
+        
+        // 關閉視窗
+        function closeModal() {
+            document.getElementById('editModal').classList.remove('show');
+            selectedDate = null;
+        }
+        
+        // 儲存課程
+        function saveEntry() {
+            const code = document.getElementById('classCode').value.trim();
+            const content = document.getElementById('classContent').value.trim();
+            
+            if (!code || !content) {
+                alert('請輸入班級代號和課程內容');
+                return;
+            }
+            
+            if (!scheduleData[selectedDate]) {
+                scheduleData[selectedDate] = [];
+            }
+            
+            scheduleData[selectedDate].push({
+                code: code,
+                content: content,
+                createdAt: new Date().toISOString()
+            });
+            
+            saveData();
+            closeModal();
+            renderCalendar();
+        }
+        
+        // 刪除課程
+        function deleteEntry(event, dateKey, index) {
+            event.stopPropagation();
+            if (confirm('確定要刪除此課程記錄嗎？')) {
+                scheduleData[dateKey].splice(index, 1);
+                if (scheduleData[dateKey].length === 0) {
+                    delete scheduleData[dateKey];
+                }
+                saveData();
+                renderCalendar();
+            }
+        }
+        
+        // 更新統計
+        function updateStats() {
+            const stats = {};
+            Object.values(scheduleData).forEach(entries => {
+                entries.forEach(entry => {
+                    if (!stats[entry.code]) {
+                        stats[entry.code] = { count: 0, contents: [] };
+                    }
+                    stats[entry.code].count++;
+                    stats[entry.code].contents.push(entry.content);
+                });
+            });
+            
+            const grid = document.getElementById('statsGrid');
+            const panel = document.getElementById('statsPanel');
+            
+            if (Object.keys(stats).length === 0) {
+                panel.style.display = 'none';
+                return;
+            }
+            
+            panel.style.display = 'block';
+            grid.innerHTML = '';
+            
+            Object.entries(stats).sort((a, b) => b[1].count - a[1].count).forEach(([code, data]) => {
+                const item = document.createElement('div');
+                item.className = 'stat-item';
+                item.innerHTML = `
+                    <div class="class-code">${code} 班</div>
+                    <div class="lesson-count">共 ${data.count} 節課</div>
+                    <div style="font-size:12px;color:#999;margin-top:5px;">
+                        ${data.contents.slice(0, 2).join('、')}...
+                    </div>
+                `;
+                grid.appendChild(item);
+            });
+        }
+        
+        // 匯出資料
+        function exportData() {
+            const blob = new Blob([JSON.stringify(scheduleData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `課程進度備份_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // 匯入資料
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (confirm('匯入將覆蓋現有資料，確定嗎？')) {
+                        scheduleData = imported;
+                        saveData();
+                        renderCalendar();
+                        alert('匯入成功！');
+                    }
+                } catch (err) {
+                    alert('檔案格式錯誤');
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        // 點擊外部關閉 modal
+        document.getElementById('editModal').onclick = (e) => {
+            if (e.target.id === 'editModal') {
+                closeModal();
+            }
+        };
+        
+        // 啟動
+        init();
+    </script>
+</body>
+</html>
