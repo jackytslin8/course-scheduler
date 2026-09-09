@@ -54,7 +54,7 @@
         }
         .calendar-header {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: 60px repeat(5, 1fr);
             gap: 5px;
             margin-bottom: 10px;
         }
@@ -68,7 +68,7 @@
         }
         .calendar-body {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: 60px repeat(5, 1fr);
             gap: 5px;
         }
         .date-cell {
@@ -287,6 +287,7 @@
     
     <div class="calendar">
         <div class="calendar-header">
+            <div>日期</div>
             <div>星期一</div>
             <div>星期二</div>
             <div>星期三</div>
@@ -395,61 +396,76 @@
             // 這月總天數
             const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
             
-            // 填充前置空白
-            for (let i = 0; i < startCol; i++) {
-                const emptyCell = document.createElement('div');
-                emptyCell.className = 'date-cell empty';
-                body.appendChild(emptyCell);
+            // 計算需要多少行
+            const totalWeekdays = [];
+            for (let day = 1; day <= daysInMonth; day++) {
+                const d = new Date(currentYear, currentMonth - 1, day);
+                const wd = d.getDay();
+                if (wd >= 1 && wd <= 5) {
+                    totalWeekdays.push(day);
+                }
             }
             
-            // 當前放在第幾欄（0=Mon, 4=Fri）
-            let col = startCol;
+            const numRows = Math.ceil(totalWeekdays.length / 5);
             
-            // 填充日期（跳過週末）
-            for (let day = 1; day <= daysInMonth; day++) {
-                const weekday = new Date(currentYear, currentMonth - 1, day).getDay();
+            for (let row = 0; row < numRows; row++) {
+                const rowStartDay = row * 5;
+                const rowEndDay = Math.min(rowStartDay + 5, totalWeekdays.length);
+                const weekDays = totalWeekdays.slice(rowStartDay, rowEndDay);
                 
-                // 跳過週末（日=0, 六=6）
-                if (weekday === 0 || weekday === 6) continue;
+                // 計算這一行的起始偏移
+                const offset = rowStartDay + startCol;
                 
-                const dateKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const cell = document.createElement('div');
-                cell.className = 'date-cell';
+                // 前置空白
+                for (let i = 0; i < (row === 0 ? startCol : 0); i++) {
+                    const emptyCell = document.createElement('div');
+                    emptyCell.className = 'date-cell empty';
+                    body.appendChild(emptyCell);
+                }
                 
-                const lunar = getLunarDay(day, currentMonth, currentYear);
-                const entries = scheduleData[dateKey] || [];
+                // 日期欄位（顯示本週第一天或空白）
+                const dateCell = document.createElement('div');
+                dateCell.className = 'date-cell';
+                if (weekDays.length > 0) {
+                    const firstDayOfWeek = weekDays[0];
+                    const lunar = getLunarDay(firstDayOfWeek, currentMonth, currentYear);
+                    dateCell.innerHTML = `<div class="date-number"><span>${firstDayOfWeek}</span><span class="date-lunar">${lunar}</span></div>`;
+                }
+                body.appendChild(dateCell);
                 
-                let html = `<div class="date-number">
-                    <span>${day}</span>
-                    <span class="date-lunar">${lunar}</span>
-                </div>`;
-                
-                entries.forEach((entry, idx) => {
-                    html += `<div class="class-entry">
-                        <span class="delete-btn" onclick="deleteEntry(event, '${dateKey}', ${idx})">&times;</span>
-                        <div class="class-name">${entry.code} 班</div>
-                        <div class="class-content">${entry.content}</div>
-                    </div>`;
+                // 星期一到五的課程欄位
+                weekDays.forEach(day => {
+                    const dateKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const cell = document.createElement('div');
+                    cell.className = 'date-cell';
+                    
+                    const entries = scheduleData[dateKey] || [];
+                    let html = '';
+                    
+                    entries.forEach((entry, idx) => {
+                        html += `<div class="class-entry">
+                            <span class="delete-btn" onclick="deleteEntry(event, '${dateKey}', ${idx})">&times;</span>
+                            <div class="class-name">${entry.code} 班</div>
+                            <div class="class-content">${entry.content}</div>
+                        </div>`;
+                    });
+                    
+                    cell.innerHTML = html || '&nbsp;';
+                    cell.onclick = (e) => {
+                        if (!e.target.classList.contains('delete-btn')) {
+                            openModal(dateKey);
+                        };
+                    };
+                    body.appendChild(cell);
                 });
                 
-                cell.innerHTML = html;
-                cell.onclick = (e) => {
-                    if (!e.target.classList.contains('delete-btn')) {
-                        openModal(dateKey);
-                    }
-                };
-                body.appendChild(cell);
-                
-                col++;
-                if (col >= 5) col = 0; // 換行
-            }
-            
-            // 填充結尾空白（讓最後一行完整）
-            while (col > 0) {
-                const emptyCell = document.createElement('div');
-                emptyCell.className = 'date-cell empty';
-                body.appendChild(emptyCell);
-                col++;
+                // 結尾空白
+                const cellsInRow = 1 + weekDays.length; // 1 = 日期欄 + 5個星期欄
+                for (let i = cellsInRow; i < 6; i++) {
+                    const emptyCell = document.createElement('div');
+                    emptyCell.className = 'date-cell empty';
+                    body.appendChild(emptyCell);
+                }
             }
         }
         
