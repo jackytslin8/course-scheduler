@@ -290,7 +290,7 @@
         @media (max-width: 768px) {
             .calendar-header,
             .calendar-body {
-                grid-template-columns: repeat(5, 1fr);
+                grid-template-columns: repeat(7, 1fr);
                 gap: 5px;
             }
             .cal-cell {
@@ -322,6 +322,8 @@
                 <div>三</div>
                 <div>四</div>
                 <div>五</div>
+                <div>六</div>
+                <div>日</div>
             </div>
             <div class="calendar-body" id="calendarBody"></div>
         </div>
@@ -458,8 +460,8 @@
                 const row = document.createElement('div');
                 row.className = 'cal-row';
                 
-                // 每行5個格子（周一到周五）
-                for (let i = 0; i < 5; i++) {
+                // 每行7個格子（周一到周日）
+                for (let i = 0; i < 7; i++) {
                     const cell = createCell(currentDate);
                     row.appendChild(cell);
                     currentDate.setDate(currentDate.getDate() + 1);
@@ -644,5 +646,3 @@
     </script>
 </body>
 </html>
-
-<!-- updated -->
