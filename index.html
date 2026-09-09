@@ -384,34 +384,39 @@
             const body = document.getElementById('calendarBody');
             body.innerHTML = '';
             
-            // 計算這月第一天是星期幾（週一=0，週日=6）
+            // 計算這月第一天是星期幾（JS: 0=日, 1=一, ..., 6=六）
             const firstDay = new Date(currentYear, currentMonth - 1, 1);
-            let startDay = firstDay.getDay() - 1;
-            if (startDay < 0) startDay = 6;
+            const firstWeekday = firstDay.getDay();
+            
+            // 轉換為 0=Mon, 1=Tue, ..., 4=Fri, 5=Sat, 6=Sun
+            let startCol = firstWeekday - 1; // 一=0, 二=1, ..., 日=6
+            if (startCol < 0) startCol = 6;
             
             // 這月總天數
             const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
             
-            // 填充空白天數
-            for (let i = 0; i < startDay; i++) {
+            // 填充前置空白
+            for (let i = 0; i < startCol; i++) {
                 const emptyCell = document.createElement('div');
                 emptyCell.className = 'date-cell empty';
                 body.appendChild(emptyCell);
             }
             
-            // 填充日期
+            // 當前放在第幾欄（0=Mon, 4=Fri）
+            let col = startCol;
+            
+            // 填充日期（跳過週末）
             for (let day = 1; day <= daysInMonth; day++) {
-                const dateKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const weekday = new Date(currentYear, currentMonth - 1, day).getDay();
-                const isWeekend = weekday === 0 || weekday === 6; // 但我們只显示工作日
                 
+                // 跳過週末（日=0, 六=6）
+                if (weekday === 0 || weekday === 6) continue;
+                
+                const dateKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const cell = document.createElement('div');
-                cell.className = 'date-cell' + (isWeekend ? ' weekend' : '');
+                cell.className = 'date-cell';
                 
-                // 獲取農曆
                 const lunar = getLunarDay(day, currentMonth, currentYear);
-                
-                // 獲取課程資料
                 const entries = scheduleData[dateKey] || [];
                 
                 let html = `<div class="date-number">
@@ -434,6 +439,17 @@
                     }
                 };
                 body.appendChild(cell);
+                
+                col++;
+                if (col >= 5) col = 0; // 換行
+            }
+            
+            // 填充結尾空白（讓最後一行完整）
+            while (col > 0) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'date-cell empty';
+                body.appendChild(emptyCell);
+                col++;
             }
         }
         
