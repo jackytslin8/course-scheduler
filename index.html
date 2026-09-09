@@ -54,7 +54,7 @@
         }
         .calendar-header {
             display: grid;
-            grid-template-columns: 60px repeat(5, 1fr);
+            grid-template-columns: 80px repeat(5, 1fr);
             gap: 5px;
             margin-bottom: 10px;
         }
@@ -68,13 +68,13 @@
         }
         .calendar-body {
             display: grid;
-            grid-template-columns: 60px repeat(5, 1fr);
+            grid-template-columns: 80px repeat(5, 1fr);
             gap: 5px;
         }
         .date-cell {
             border: 1px solid #e0e0e0;
             border-radius: 4px;
-            min-height: 120px;
+            min-height: 100px;
             padding: 8px;
             cursor: pointer;
             transition: all 0.2s;
@@ -129,7 +129,7 @@
         .delete-btn:hover {
             color: #d32f2f;
         }
-        
+
         /* Modal */
         .modal {
             display: none;
@@ -282,9 +282,9 @@
         <h1>📚 課程進度管理系統</h1>
         <p>點擊日期格子輸入課程進度</p>
     </div>
-    
+
     <div class="month-selector" id="monthSelector"></div>
-    
+
     <div class="calendar">
         <div class="calendar-header">
             <div>日期</div>
@@ -296,16 +296,16 @@
         </div>
         <div class="calendar-body" id="calendarBody"></div>
     </div>
-    
+
     <div class="stats" id="statsPanel" style="display:none;">
         <h3>📊 各班級進度統計</h3>
         <div class="stats-grid" id="statsGrid"></div>
     </div>
-    
+
     <button class="export-btn" onclick="exportData()">📥 匯出備份</button>
     <button class="import-btn" onclick="document.getElementById('importFile').click()">📤 匯入備份</button>
     <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
-    
+
     <!-- Modal -->
     <div class="modal" id="editModal">
         <div class="modal-content">
@@ -329,17 +329,17 @@
             <button class="submit-btn" onclick="saveEntry()">💾 儲存</button>
         </div>
     </div>
-    
+
     <script>
         // 資料結構
         let scheduleData = {};
         let currentMonth = 9; // 9月
         let currentYear = 2026; // 115年 = 2026
         let selectedDate = null;
-        
+
         // 常用班級列表
         const quickClasses = ['506', '605', '606', '609', '610'];
-        
+
         // 初始化
         function init() {
             loadData();
@@ -347,7 +347,7 @@
             renderCalendar();
             updateStats();
         }
-        
+
         // 載入資料
         function loadData() {
             const saved = localStorage.getItem('courseSchedule');
@@ -355,13 +355,13 @@
                 scheduleData = JSON.parse(saved);
             }
         }
-        
+
         // 儲存資料
         function saveData() {
             localStorage.setItem('courseSchedule', JSON.stringify(scheduleData));
             updateStats();
         }
-        
+
         // 渲染月份選擇器
         function renderMonthSelector() {
             const months = ['9月', '10月', '11月', '12月', '1月'];
@@ -379,7 +379,7 @@
                 container.appendChild(btn);
             });
         }
-        
+
         // 渲染日曆
         function renderCalendar() {
             const body = document.getElementById('calendarBody');
@@ -387,84 +387,74 @@
             
             // 計算這月第一天是星期幾（JS: 0=日, 1=一, ..., 6=六）
             const firstDay = new Date(currentYear, currentMonth - 1, 1);
-            const firstWeekday = firstDay.getDay();
-            
-            // 轉換為 0=Mon, 1=Tue, ..., 4=Fri, 5=Sat, 6=Sun
-            let startCol = firstWeekday - 1; // 一=0, 二=1, ..., 日=6
-            if (startCol < 0) startCol = 6;
+            const firstWeekday = firstDay.getDay(); // 1=Mon, 2=Tue, ...
             
             // 這月總天數
             const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
             
-            // 計算需要多少行
-            const totalWeekdays = [];
+            // 收集所有工作日及其星期
+            const weekdays = [];
             for (let day = 1; day <= daysInMonth; day++) {
                 const d = new Date(currentYear, currentMonth - 1, day);
-                const wd = d.getDay();
+                const wd = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
                 if (wd >= 1 && wd <= 5) {
-                    totalWeekdays.push(day);
+                    weekdays.push({ day, wd });
                 }
             }
             
-            const numRows = Math.ceil(totalWeekdays.length / 5);
+            // 計算行數
+            const totalCells = weekdays.length;
+            const numRows = Math.ceil(totalCells / 5);
             
             for (let row = 0; row < numRows; row++) {
-                const rowStartDay = row * 5;
-                const rowEndDay = Math.min(rowStartDay + 5, totalWeekdays.length);
-                const weekDays = totalWeekdays.slice(rowStartDay, rowEndDay);
+                const rowStartIdx = row * 5;
                 
-                // 計算這一行的起始偏移
-                const offset = rowStartDay + startCol;
-                
-                // 前置空白
-                for (let i = 0; i < (row === 0 ? startCol : 0); i++) {
-                    const emptyCell = document.createElement('div');
-                    emptyCell.className = 'date-cell empty';
-                    body.appendChild(emptyCell);
-                }
-                
-                // 日期欄位（顯示本週第一天或空白）
+                // 日期欄位（顯示本週第一天）
                 const dateCell = document.createElement('div');
                 dateCell.className = 'date-cell';
-                if (weekDays.length > 0) {
-                    const firstDayOfWeek = weekDays[0];
+                if (rowStartIdx < weekdays.length) {
+                    const firstDayOfWeek = weekdays[rowStartIdx].day;
                     const lunar = getLunarDay(firstDayOfWeek, currentMonth, currentYear);
                     dateCell.innerHTML = `<div class="date-number"><span>${firstDayOfWeek}</span><span class="date-lunar">${lunar}</span></div>`;
+                } else {
+                    dateCell.className += ' empty';
                 }
                 body.appendChild(dateCell);
                 
                 // 星期一到五的課程欄位
-                weekDays.forEach(day => {
-                    const dateKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                for (let col = 0; col < 5; col++) {
+                    const cellIdx = rowStartIdx + col;
                     const cell = document.createElement('div');
-                    cell.className = 'date-cell';
                     
-                    const entries = scheduleData[dateKey] || [];
-                    let html = '';
-                    
-                    entries.forEach((entry, idx) => {
-                        html += `<div class="class-entry">
-                            <span class="delete-btn" onclick="deleteEntry(event, '${dateKey}', ${idx})">&times;</span>
-                            <div class="class-name">${entry.code} 班</div>
-                            <div class="class-content">${entry.content}</div>
-                        </div>`;
-                    });
-                    
-                    cell.innerHTML = html || '&nbsp;';
-                    cell.onclick = (e) => {
-                        if (!e.target.classList.contains('delete-btn')) {
-                            openModal(dateKey);
+                    if (cellIdx < weekdays.length) {
+                        const d = weekdays[cellIdx];
+                        const lunar = getLunarDay(d.day, currentMonth, currentYear);
+                        cell.innerHTML = `<div class="date-number"><span>${d.day}</span><span class="date-lunar">${lunar}</span></div>`;
+                        
+                        // 加入課程資料
+                        const dateKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`;
+                        const entries = scheduleData[dateKey] || [];
+                        entries.forEach((entry, idx) => {
+                            const entryDiv = document.createElement('div');
+                            entryDiv.className = 'class-entry';
+                            entryDiv.innerHTML = `
+                                <span class="delete-btn" onclick="deleteEntry(event, '${dateKey}', ${idx})">&times;</span>
+                                <div class="class-name">${entry.code} 班</div>
+                                <div class="class-content">${entry.content}</div>
+                            `;
+                            cell.appendChild(entryDiv);
+                        });
+                        
+                        cell.onclick = (e) => {
+                            if (!e.target.classList.contains('delete-btn')) {
+                                openModal(dateKey);
+                            }
                         };
-                    };
+                    } else {
+                        cell.className = 'date-cell empty';
+                    }
+                    
                     body.appendChild(cell);
-                });
-                
-                // 結尾空白
-                const cellsInRow = 1 + weekDays.length; // 1 = 日期欄 + 5個星期欄
-                for (let i = cellsInRow; i < 6; i++) {
-                    const emptyCell = document.createElement('div');
-                    emptyCell.className = 'date-cell empty';
-                    body.appendChild(emptyCell);
                 }
             }
         }
